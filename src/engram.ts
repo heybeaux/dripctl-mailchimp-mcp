@@ -1,0 +1,62 @@
+const ENGRAM_API_URL = process.env.ENGRAM_API_URL || 'https://api.openengram.ai';
+const ENGRAM_API_KEY = process.env.ENGRAM_API_KEY;
+
+interface EngramMemory {
+  id: string;
+  content: string;
+  layer: string;
+  significance: number;
+  metadata: Record<string, any>;
+}
+
+export async function storeMemory(content: string, metadata: Record<string, any>): Promise<string | null> {
+  if (!ENGRAM_API_KEY) return null;
+
+  try {
+    const res = await fetch(`${ENGRAM_API_URL}/v1/memories`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-AM-API-Key': ENGRAM_API_KEY,
+        'X-AM-User-ID': 'beaux',
+      },
+      body: JSON.stringify({
+        content,
+        layer: 'PROJECT',
+        type: 'observation',
+        source: 'AGENT_OBSERVATION',
+        agentId: 'dripctl',
+        significance: 0.7,
+        metadata: {
+          source: 'dripctl-mailchimp-mcp',
+          type: 'campaign_performance',
+          ...metadata,
+        },
+      }),
+    });
+    const data = await res.json() as { id?: string };
+    return data.id || null;
+  } catch {
+    return null;
+  }
+}
+
+export async function recallMemories(query: string, limit: number = 10): Promise<EngramMemory[]> {
+  if (!ENGRAM_API_KEY) return [];
+
+  try {
+    const res = await fetch(`${ENGRAM_API_URL}/v1/memories/query`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-AM-API-Key': ENGRAM_API_KEY,
+        'X-AM-User-ID': 'beaux',
+      },
+      body: JSON.stringify({ query, limit }),
+    });
+    const data = await res.json() as { memories?: EngramMemory[] };
+    return data.memories || [];
+  } catch {
+    return [];
+  }
+}

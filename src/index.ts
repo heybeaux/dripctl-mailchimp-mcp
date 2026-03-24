@@ -7,6 +7,9 @@ import { registerCampaignTools } from "./tools/campaigns.js";
 import { registerTemplateTools } from "./tools/templates.js";
 import { registerSegmentTools } from "./tools/segments.js";
 import { registerInsightTools } from "./tools/insights.js";
+import { registerMemoryTools } from "./tools/memory.js";
+import { registerForecastTools } from "./tools/forecast.js";
+import { registerEventTools } from "./tools/events.js";
 import { createMailchimpClient } from "./mailchimp.js";
 
 const server = new McpServer({
@@ -23,6 +26,9 @@ registerCampaignTools(server, mc);
 registerTemplateTools(server, mc);
 registerSegmentTools(server, mc);
 registerInsightTools(server, mc);
+registerMemoryTools(server, mc);
+registerForecastTools(server, mc);
+registerEventTools(server);
 
 // Start
 async function main() {
