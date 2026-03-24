@@ -57,11 +57,12 @@ export function registerMemoryTools(server: McpServer, mc: any) {
     "Recall past campaign performance and patterns for a client. Use this before planning new campaigns to make data-driven recommendations.",
     {
       query: z.string().describe("What to recall — e.g. 'best performing year-end appeals' or 'campaign history for Share'"),
+      clientName: z.string().optional().describe("Client name to scope recall to (e.g. 'Heybeaux'). Isolates from other clients' data."),
       limit: z.number().optional().default(10).describe("Max results"),
     },
-    async ({ query, limit }) => {
+    async ({ query, clientName, limit }) => {
       try {
-        const memories = await recallMemories(query, limit);
+        const memories = await recallMemories(query, limit, clientName);
 
         if (memories.length === 0) {
           return {

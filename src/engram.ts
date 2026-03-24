@@ -31,6 +31,7 @@ export async function storeMemory(content: string, metadata: Record<string, any>
         type: 'observation',
         source: 'AGENT_OBSERVATION',
         agentId: 'dripctl',
+        namespace: `dripctl:${metadata.clientName || 'default'}:campaigns`,
         significance: 0.7,
         metadata: {
           source: 'dripctl-mailchimp-mcp',
@@ -52,13 +53,19 @@ export async function storeMemory(content: string, metadata: Record<string, any>
   }
 }
 
-export async function recallMemories(query: string, limit: number = 10): Promise<EngramMemory[]> {
+export async function recallMemories(query: string, limit: number = 10, clientName?: string): Promise<EngramMemory[]> {
   if (!ENGRAM_API_KEY) {
     console.error('[engram] No ENGRAM_API_KEY set — recall disabled');
     return [];
   }
 
   try {
+    const body: Record<string, any> = { query, limit };
+    // Scope to dripctl namespace if client specified
+    if (clientName) {
+      body.namespace = `dripctl:${clientName}:campaigns`;
+    }
+
     const res = await fetch(`${ENGRAM_API_URL}/v1/memories/query`, {
       method: 'POST',
       headers: {
@@ -66,7 +73,7 @@ export async function recallMemories(query: string, limit: number = 10): Promise
         'X-AM-API-Key': ENGRAM_API_KEY,
         'X-AM-User-ID': 'beaux',
       },
-      body: JSON.stringify({ query, limit }),
+      body: JSON.stringify(body),
     });
     if (!res.ok) {
       const errText = await res.text();
