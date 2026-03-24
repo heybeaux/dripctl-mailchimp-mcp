@@ -10,7 +10,10 @@ interface EngramMemory {
 }
 
 export async function storeMemory(content: string, metadata: Record<string, any>): Promise<string | null> {
-  if (!ENGRAM_API_KEY) return null;
+  if (!ENGRAM_API_KEY) {
+    console.error('[engram] No ENGRAM_API_KEY set — memory storage disabled');
+    return null;
+  }
 
   try {
     const res = await fetch(`${ENGRAM_API_URL}/v1/memories`, {
@@ -34,15 +37,24 @@ export async function storeMemory(content: string, metadata: Record<string, any>
         },
       }),
     });
+    if (!res.ok) {
+      const errText = await res.text();
+      console.error(`[engram] Store failed: HTTP ${res.status} — ${errText.slice(0, 200)}`);
+      return null;
+    }
     const data = await res.json() as { id?: string };
     return data.id || null;
-  } catch {
+  } catch (err) {
+    console.error('[engram] Store error:', err);
     return null;
   }
 }
 
 export async function recallMemories(query: string, limit: number = 10): Promise<EngramMemory[]> {
-  if (!ENGRAM_API_KEY) return [];
+  if (!ENGRAM_API_KEY) {
+    console.error('[engram] No ENGRAM_API_KEY set — recall disabled');
+    return [];
+  }
 
   try {
     const res = await fetch(`${ENGRAM_API_URL}/v1/memories/query`, {
