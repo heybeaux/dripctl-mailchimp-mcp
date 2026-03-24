@@ -17,6 +17,8 @@ export async function storeMemory(content: string, metadata: Record<string, any>
     return null;
   }
 
+  const clientTag = `client:${(metadata.clientName || 'default').toLowerCase().replace(/\s+/g, '-')}`;
+
   try {
     const res = await fetch(`${ENGRAM_API_URL}/v1/memories`, {
       method: 'POST',
@@ -31,11 +33,16 @@ export async function storeMemory(content: string, metadata: Record<string, any>
         type: 'observation',
         source: 'AGENT_OBSERVATION',
         agentId: 'dripctl',
-        namespace: `dripctl:${metadata.clientName || 'default'}:campaigns`,
+        tags: [
+          'source:dripctl',
+          clientTag,
+          'type:campaign_performance',
+        ],
         significance: 0.7,
         metadata: {
           source: 'dripctl-mailchimp-mcp',
           type: 'campaign_performance',
+          client: metadata.clientName,
           ...metadata,
         },
       }),
@@ -60,13 +67,21 @@ export async function recallMemories(query: string, limit: number = 10, clientNa
   }
 
   try {
-    const body: Record<string, any> = { query, limit };
-    // Scope to dripctl namespace if client specified
+    // Build tag filter — always scope to dripctl, optionally scope to client
+    const filterTags = ['source:dripctl'];
     if (clientName) {
-      body.namespace = `dripctl:${clientName}:campaigns`;
+      filterTags.push(`client:${clientName.toLowerCase().replace(/\s+/g, '-')}`);
     }
 
-    const res = await fetch(`${ENGRAM_API_URL}/v1/memories/query`, {
+    const body: Record<string, any> = {
+      query,
+      limit,
+      filter: {
+        tags: filterTags,
+      },
+    };
+
+    const res = await fetch(`${ENGRAM_API_URL}/v1/memories/recall`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
