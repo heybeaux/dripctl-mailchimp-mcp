@@ -4,8 +4,10 @@ const ENGRAM_API_KEY = process.env.ENGRAM_API_KEY;
 interface EngramMemory {
   id: string;
   content: string;
+  raw: string;
   layer: string;
   significance: number;
+  score?: number;
   metadata: Record<string, any>;
 }
 
@@ -66,9 +68,20 @@ export async function recallMemories(query: string, limit: number = 10): Promise
       },
       body: JSON.stringify({ query, limit }),
     });
-    const data = await res.json() as { memories?: EngramMemory[] };
-    return data.memories || [];
-  } catch {
+    if (!res.ok) {
+      const errText = await res.text();
+      console.error(`[engram] Recall failed: HTTP ${res.status} — ${errText.slice(0, 200)}`);
+      return [];
+    }
+    const data = await res.json() as { memories?: any[] };
+    // Normalize: Engram returns 'raw' for content, map to 'content' for consistency
+    return (data.memories || []).map((m: any) => ({
+      ...m,
+      content: m.raw || m.content || '',
+      significance: m.score || m.significance || m.effectiveScore || 0.5,
+    }));
+  } catch (err) {
+    console.error('[engram] Recall error:', err);
     return [];
   }
 }
