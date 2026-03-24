@@ -81,7 +81,7 @@ export async function recallMemories(query: string, limit: number = 10, clientNa
       },
     };
 
-    const res = await fetch(`${ENGRAM_API_URL}/v1/memories/recall`, {
+    const res = await fetch(`${ENGRAM_API_URL}/v1/recall`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
