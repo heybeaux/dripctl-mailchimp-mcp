@@ -60,27 +60,39 @@ export function registerMemoryTools(server: McpServer, mc: any) {
       limit: z.number().optional().default(10).describe("Max results"),
     },
     async ({ query, limit }) => {
-      const memories = await recallMemories(query, limit);
+      try {
+        const memories = await recallMemories(query, limit);
 
-      if (memories.length === 0) {
+        if (memories.length === 0) {
+          return {
+            content: [{
+              type: "text" as const,
+              text: "No campaign memories found for this query. Campaign memory builds as you analyze campaigns. Use dripctl_remember_campaign after reviewing results.",
+            }],
+          };
+        }
+
+        const formatted = memories.map((m, i) => {
+          const text = m.content || m.raw || '(no content)';
+          const score = typeof m.significance === 'number' ? `${(m.significance * 100).toFixed(0)}%` : 'n/a';
+          return `[${i + 1}] (relevance: ${score})\n${text}`;
+        }).join('\n\n---\n\n');
+
         return {
           content: [{
             type: "text" as const,
-            text: "No campaign memories found. I'll start building memory as we analyze campaigns together. Use dripctl_remember_campaign after reviewing campaign results.",
+            text: `Found ${memories.length} relevant campaign memories:\n\n${formatted}`,
           }],
         };
+      } catch (err: any) {
+        return {
+          content: [{
+            type: "text" as const,
+            text: `Error recalling memories: ${err.message}`,
+          }],
+          isError: true,
+        };
       }
-
-      const formatted = memories.map((m, i) =>
-        `[${i + 1}] (relevance: ${(m.significance * 100).toFixed(0)}%)\n${m.content}`
-      ).join('\n\n---\n\n');
-
-      return {
-        content: [{
-          type: "text" as const,
-          text: `Found ${memories.length} relevant campaign memories:\n\n${formatted}`,
-        }],
-      };
     }
   );
 }
